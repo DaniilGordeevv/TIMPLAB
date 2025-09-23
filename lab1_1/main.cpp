@@ -1,52 +1,101 @@
-#include <iostream>
-#include <cctype>
-#include <locale>
 #include "modAlphaCipher.h"
+#include <iostream>
+#include <locale>
+#include <codecvt>
+#include <algorithm>
 
 using namespace std;
 
-bool isValid(const wstring &s) {
-    locale loc("ru_RU.UTF-8");
-    for(auto c:s) {
-        if(!isalpha(c, loc) || !isupper(c, loc)) {
-            return false;
+// проверка, чтобы строка состояла только из русских букв
+bool isValid(const wstring& s)
+{
+    for(auto c : s) {
+        // Проверяем, что символ находится в русском алфавите ВЕРХНЕГО регистра
+        if(c < L'А' || c > L'Я') {
+            if(c != L'Ё') // отдельно проверяем Ё
+                return false;
         }
     }
     return true;
 }
 
-int main() {
-    locale loc("ru_RU.UTF-8");
-    locale::global(loc);
-    wstring key, text;
+// Функция для преобразования в верхний регистр для русских букв
+wstring to_upper_rus(const wstring& s) {
+    wstring result = s;
+    for (auto& c : result) {
+        // Русские строчные буквы -> прописные
+        if (c >= L'а' && c <= L'я') {
+            c = c - L'а' + L'А';
+        } 
+        // Ё -> Ё
+        else if (c == L'ё') {
+            c = L'Ё';
+        }
+    }
+    return result;
+}
+
+// Функция для преобразования string в wstring
+wstring to_wide(const string& narrow_str) {
+    wstring_convert<codecvt_utf8<wchar_t>> converter;
+    return converter.from_bytes(narrow_str);
+}
+
+// Функция для преобразования wstring в string
+string to_narrow(const wstring& wide_str) {
+    wstring_convert<codecvt_utf8<wchar_t>> converter;
+    return converter.to_bytes(wide_str);
+}
+
+int main()
+{
+    setlocale(LC_ALL, "ru_RU.UTF-8");
+    
+    string key_input;
+    string text_input;
     unsigned op;
-    wcout << L"Шифр готов. Введите ключ: ";
-    wcin >> key;
+    
+    cout << "Шифр готов. Введите ключ: ";
+    cin >> key_input;
+    
+    wstring key = to_wide(key_input);
+    key = to_upper_rus(key); // Используем нашу функцию вместо transform
+    
     if(!isValid(key)) {
-        wcerr << L"Неверный ключ!" << endl;
+        cerr << "Ключ недействителен! Используйте только русские буквы.\n";
         return 1;
     }
-    wcout << L"Ключ загружен." << endl;
+    
+    cout << "Ключ загружен\n";
     modAlphaCipher cipher(key);
+    
     do {
-        wcout << L"Какую операцию выполнить (0-выйти, 1-зашифровать, 2-расшифровать): ";
-        wcin >> op;
-        if(op>2) {
-            wcout << L"Неверный номер операции" <<
-            endl;
-        } else if(op>0) {
-            wcout << L"Введите текст: ";
-            wcin >> text;
+        cout << "Шифр готов. Выберите операцию (0-выход, 1-шифрование, 2-расшифрование): ";
+        cin >> op;
+        
+        if(op > 2) {
+            cout << "Неверная операция\n";
+        } else if(op > 0) {
+            cout << "Введите текст: ";
+            cin.ignore(); // Очищаем буфер
+            getline(cin, text_input); // Читаем всю строку
+            
+            wstring text = to_wide(text_input);
+            text = to_upper_rus(text); // Используем нашу функцию вместо transform
+            
             if(isValid(text)) {
-                if(op==1) {
-                    wcout << L"Зашифрованный текст: " << cipher.encrypt(text) << endl;
+                if(op == 1) {
+                    wstring encrypted = cipher.encrypt(text);
+                    cout << "Зашифрованный текст: " << to_narrow(encrypted) << endl;
                 } else {
-                    wcout << L"Расшифрованный текст: " << cipher.decrypt(text) << endl;
+                    wstring decrypted = cipher.decrypt(text);
+                    cout << "Расшифрованный текст: " << to_narrow(decrypted) << endl;
                 }
             } else {
-                wcout << L"Неверный текст" << endl;
+                cout << "Операция отменена: неверный текст. Используйте только русские буквы.\n";
             }
         }
-    } while(op!=0);
+    } while(op != 0);
+    
     return 0;
 }
