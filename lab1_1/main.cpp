@@ -3,14 +3,25 @@
 #include <locale>
 #include <codecvt>
 #include <cwctype>
+#include <algorithm>
 
 using namespace std;
+
+// Функция для преобразования в верхний регистр с русской локалью
+wstring to_upper_rus(const wstring& s) {
+    wstring result = s;
+    locale rus_locale("ru_RU.UTF-8");
+    for (auto& c : result) {
+        c = towupper(c, rus_locale);
+    }
+    return result;
+}
 
 // проверка, чтобы строка состояла только из русских букв
 bool isValid(const wstring& s)
 {
     for(auto c : s) {
-        if(!iswalpha(c) || !iswupper(c)) {
+        if(!iswalpha(c)) {
             return false;
         }
         // Проверяем, что символ находится в русском алфавите
@@ -46,10 +57,10 @@ int main()
     cin >> key_input;
     
     wstring key = to_wide(key_input);
-    transform(key.begin(), key.end(), key.begin(), ::towupper);
+    key = to_upper_rus(key);  // Преобразуем в верхний регистр
     
     if(!isValid(key)) {
-        cerr << "Ключ недействителен! Используйте только русские буквы в верхнем регистре.\n";
+        cerr << "Ключ недействителен! Используйте только русские буквы.\n";
         return 1;
     }
     
@@ -64,10 +75,11 @@ int main()
             cout << "Неверная операция\n";
         } else if(op > 0) {
             cout << "Введите текст: ";
-            cin >> text_input;
+            cin.ignore();  // Очищаем буфер
+            getline(cin, text_input);  // Читаем всю строку
             
             wstring text = to_wide(text_input);
-            transform(text.begin(), text.end(), text.begin(), ::towupper);
+            text = to_upper_rus(text);  // Преобразуем в верхний регистр
             
             if(isValid(text)) {
                 if(op == 1) {
